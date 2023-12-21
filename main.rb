@@ -1,4 +1,6 @@
 module BreakerAndMaker
+	private
+
 	def evaluate_guess(guess)
 		exact_matches = 0
 		near_matches = 0
@@ -22,16 +24,15 @@ module BreakerAndMaker
 
 		{"exact_matches": exact_matches, "near_matches": near_matches}
 	end
+
+	def valid_code?(guess)
+		guess.length == 4 && guess.split("").all? { |char| char.to_i.between?(1, 6) }
+	end
 end
 
 class Mastermind
-	def initialize
-		@game = nil
-	end
-
-	def start_game
-		@game = choose_game_type
-		p @game
+	def game
+		choose_game_type
 	end
 
 	private
@@ -71,7 +72,7 @@ class CodeBreaker
 				@turns += 1
 			end
 		end
-		puts "Bad luck! You ran out of guesses! The code was #{@secret_code}."
+		puts "Bad luck! You ran out of guesses! The code was #{@secret_code}." if @turns == 13
 	end
 
 	private
@@ -85,21 +86,51 @@ class CodeBreaker
 	def get_player_guess
 		puts "Enter your guess. It must be a 4-digit number using only the digits 1-6 (e.g. 1234):"
 		guess = gets.chomp
-		until valid_guess?(guess)
+		until valid_code?(guess)
 			puts "Invalid guess. Please enter a 4-digit number using only the digits 1-6:"
 			guess = gets.chomp
 		end
 		guess
 	end
-
-	def valid_guess?(guess)
-		guess.length == 4 && guess.split("").all? { |char| char.to_i.between?(1, 6) }
-	end
 end
 
 class CodeMaker
 	include BreakerAndMaker
+
+	def initialize
+		@secret_code = choose_secret_code
+		@turns = 1
+	end
+
+	def play
+		while @turns <= 12
+			puts "Turn ##{@turns}\n"
+			guess = get_AI_guess(@turns)
+			feedback = evaluate_guess(guess)
+			if feedback[:exact_matches] == 4
+				puts "Oh no! The computer guessed the correct code!"
+				break
+			else
+				puts "Exact matches: #{feedback[:exact_matches]}\nNear matches: #{feedback[:near_matches]}"
+				@turns += 1
+			end
+		end
+		puts "The computer ran out of guesses and couldn't crack your code! Well done!" if @turns == 13
+	end
+
+	private
+
+	def choose_secret_code
+		puts "Choose a code for the computer to crack. It must be a 4-digit number using only the digits 1-6 (e.g. 1234):"
+		code = gets.chomp
+		loop do
+			break if valid_code?(code)
+			puts "Invalid input. Choose a code for the computer to crack. It must be a 4-digit number using only the digits 1-6 (e.g. 1234):"
+			code = gets.chomp
+		end
+		code
+	end
 end
 
 game = Mastermind.new
-game.start_game
+game.game
