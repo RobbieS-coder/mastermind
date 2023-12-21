@@ -1,20 +1,20 @@
 module BreakerAndMaker
 	private
 
-	def evaluate_guess(guess)
+	def evaluate_feedback(guess, potential_code)
 		exact_matches = 0
 		near_matches = 0
-		secret_code_remaining = @secret_code.dup.split("")
+		secret_code_remaining = potential_code.dup.split("")
 
 		(0..3).each do |i|
-			if guess[i] == @secret_code[i]
+			if guess[i] == potential_code[i]
 				exact_matches += 1
 				secret_code_remaining[i] = nil
 			end
 		end
 
 		(0..3).each do |i|
-			next if guess[i] == @secret_code[i]
+			next if guess[i] == potential_code[i]
 
 			if secret_code_remaining.include?(guess[i])
 				near_matches += 1
@@ -26,7 +26,7 @@ module BreakerAndMaker
 	end
 
 	def valid_code?(guess)
-		guess.length == 4 && guess.split("").all? { |char| char.to_i.between?(1, 6) }
+		guess.length == 4 && guess.split("").all? {|char| char.to_i.between?(1, 6) }
 	end
 end
 
@@ -47,7 +47,7 @@ module AI
     guess = @numbers_included.join
     guess << @initial_guesses[turns - 1] until guess.length == 4
 
-    feedback = evaluate_guess(guess)
+    feedback = evaluate_feedback(guess, @secret_code)
     matches = (feedback[:exact_matches] + feedback[:near_matches]) - @numbers_included.length
     matches.times { @numbers_included.push(@initial_guesses[turns - 1]) }
 
@@ -57,12 +57,18 @@ module AI
   def final_guesses
 		@permutations ||= []
 		if @first_final_guess == true
-			@numbers_included.permutation { |permutation| @permutations.push(permutation.join) }
+			@numbers_included.permutation {|perm| @permutations.push(perm.join) }
 			@permutations.uniq!
 			@permutations.shuffle!
+
 			@first_final_guess = false
 		end
-		@permutations.shift
+
+		guess = @permutations.shift
+		feedback = evaluate_feedback(guess, @secret_code)
+		@permutations.reject! {|perm| evaluate_feedback(guess, perm) != feedback }
+
+		guess
   end
 end
 
@@ -100,7 +106,7 @@ class CodeBreaker
 		while @turns <= 12
 			puts "\nTurn ##{@turns}\n"
 			guess = get_player_guess
-			feedback = evaluate_guess(guess)
+			feedback = evaluate_feedback(guess, @secret_code)
 			if feedback[:exact_matches] == 4
 				puts "You guessed the correct code!"
 				break
@@ -144,7 +150,7 @@ class CodeMaker
 			guess = get_AI_guess(@turns)
 			sleep(1)
 			puts guess
-			feedback = evaluate_guess(guess)
+			feedback = evaluate_feedback(guess, @secret_code)
 			if feedback[:exact_matches] == 4
 				puts "Oh no! The computer guessed the correct code!"
 				break
