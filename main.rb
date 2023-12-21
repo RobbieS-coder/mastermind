@@ -31,30 +31,41 @@ module BreakerAndMaker
 end
 
 module AI
-	private
+
+  private
 
   def get_AI_guess(turns)
-    @numbers_included ||= []
-		if turns < 7
-			guess = initial_guesses(turns)
-			feedback = evaluate_guess(guess)
-			matches = feedback[:exact_matches] + feedback[:near_matches]
-			matches.times { @numbers_included.push(@turns) }
-			p @numbers_included
-			return guess
-		else
-			return final_guesses
-		end
+		@initial_guesses ||= ["1", "2", "3", "4", "5", "6"].shuffle
+		@numbers_included ||= []
+    return final_guesses if @numbers_included.length == 4
+
+    initial_guesses(turns)
   end
 
-	def initial_guesses(turns)
-		turns.to_s * 4
-	end
+  def initial_guesses(turns)
+		@first_final_guess ||= true
+    guess = @numbers_included.join
+    guess << @initial_guesses[turns - 1] until guess.length == 4
 
-	def final_guesses
+    feedback = evaluate_guess(guess)
+    matches = (feedback[:exact_matches] + feedback[:near_matches]) - @numbers_included.length
+    matches.times { @numbers_included.push(@initial_guesses[turns - 1]) }
 
-	end
+    guess
+  end
+
+  def final_guesses
+		@permutations ||= []
+		if @first_final_guess == true
+			@numbers_included.permutation { |permutation| @permutations.push(permutation.join) }
+			@permutations.uniq!
+			@permutations.shuffle!
+			@first_final_guess = false
+		end
+		@permutations.shift
+  end
 end
+
 
 class Mastermind
 	def game
@@ -87,7 +98,7 @@ class CodeBreaker
 
 	def play
 		while @turns <= 12
-			puts "Turn ##{@turns}\n"
+			puts "\nTurn ##{@turns}\n"
 			guess = get_player_guess
 			feedback = evaluate_guess(guess)
 			if feedback[:exact_matches] == 4
@@ -128,8 +139,10 @@ class CodeMaker
 
 	def play
 		while @turns <= 12
-			puts "Turn ##{@turns}\n"
+			sleep(1)
+			puts "\nTurn ##{@turns}\n"
 			guess = get_AI_guess(@turns)
+			sleep(1)
 			puts guess
 			feedback = evaluate_guess(guess)
 			if feedback[:exact_matches] == 4
