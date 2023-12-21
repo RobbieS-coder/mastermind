@@ -30,6 +30,32 @@ module BreakerAndMaker
 	end
 end
 
+module AI
+	private
+
+  def get_AI_guess(turns)
+    @numbers_included ||= []
+		if turns < 7
+			guess = initial_guesses(turns)
+			feedback = evaluate_guess(guess)
+			matches = feedback[:exact_matches] + feedback[:near_matches]
+			matches.times { @numbers_included.push(@turns) }
+			p @numbers_included
+			return guess
+		else
+			return final_guesses
+		end
+  end
+
+	def initial_guesses(turns)
+		turns.to_s * 4
+	end
+
+	def final_guesses
+
+	end
+end
+
 class Mastermind
 	def game
 		choose_game_type
@@ -78,9 +104,7 @@ class CodeBreaker
 	private
 
 	def generate_secret_code
-		code = ""
-		4.times { code += NUMBERS.sample() }
-		code
+		Array.new(4) { NUMBERS.sample }.join
 	end
 
 	def get_player_guess
@@ -95,7 +119,7 @@ class CodeBreaker
 end
 
 class CodeMaker
-	include BreakerAndMaker
+	include BreakerAndMaker, AI
 
 	def initialize
 		@secret_code = choose_secret_code
@@ -106,6 +130,7 @@ class CodeMaker
 		while @turns <= 12
 			puts "Turn ##{@turns}\n"
 			guess = get_AI_guess(@turns)
+			puts guess
 			feedback = evaluate_guess(guess)
 			if feedback[:exact_matches] == 4
 				puts "Oh no! The computer guessed the correct code!"
