@@ -32,13 +32,18 @@ end
 
 class Mastermind
 	def game
-		choose_game_type
+		loop do
+			choose_game_type
+			sleep(1)
+			play_again = ask_to_play_again
+			break if play_again == 'n'
+		end
 	end
 
 	private
 
 	def choose_game_type
-		puts "Would you like to be:\n1. The breaker of the code\n2. The maker of the code?"
+		puts "\nWould you like to be:\n1. The breaker of the code\n2. The maker of the code?"
 		game_type = gets.chomp
 		loop do
 			break if (1..2).include?(game_type.to_i)
@@ -46,6 +51,16 @@ class Mastermind
 			game_type = gets.chomp
 		end
 		game_type == "1" ? CodeBreaker.new.play : CodeMaker.new.play
+	end
+
+	def ask_to_play_again
+		puts "\nDo you want to play again? (y/n)"
+		loop do
+			play_again = gets.chomp.downcase
+			return play_again if ['y', 'n'].include?(play_again)
+
+			puts "Invalid input. Please enter 'y' for yes or 'n' for no."
+		end
 	end
 end
 
@@ -160,10 +175,10 @@ class AI
 
 	def generate_all_candidates
 		@candidates = []
-    (1111..6666).each do |code|
-      code_str = code.to_s
-      @candidates << code_str if code_str.chars.all? { |digit| digit.between?("1", "6") }
-    end
+		(1111..6666).each do |code|
+			code_str = code.to_s
+			@candidates << code_str if code_str.chars.all? { |digit| digit.between?("1", "6") }
+		end
 	end
 end
 
