@@ -105,16 +105,18 @@ class CodeMaker
 		while @turns <= 12
 			sleep(1)
 			puts "\nTurn ##{@turns}\n"
-			guess = @ai.get_AI_guess(@secret_code)
+			guess = @ai.get_AI_guess
 			sleep(1)
 			puts guess
 			feedback = evaluate_feedback(guess, @secret_code)
+			@ai.update_candidates(guess, feedback)
 			if feedback[:exact_matches] == 4
 				puts "Oh no! The computer guessed the correct code!"
 				break
 			else
 				puts "Exact matches: #{feedback[:exact_matches]}\nNear matches: #{feedback[:near_matches]}"
 				@turns += 1
+				@ai.update_guess
 			end
 		end
 		puts "The computer ran out of guesses and couldn't crack your code! Well done!" if @turns == 13
@@ -138,61 +140,30 @@ class AI
 	include BreakerAndMaker
 
 	def initialize
-		@turns = 0
-		@initial_guesses = ["1", "2", "3", "4", "5", "6"].shuffle
-		@numbers_included = []
-		@first_final_guess = true
-		@permutations = []
+		generate_all_candidates
+		@current_guess = "1122"
 	end
 
-	def get_AI_guess(secret_code)
-		@turns += 1
+	def get_AI_guess()
+		@current_guess
+	end
 
-		return final_guesses(secret_code) if @numbers_included.length == 4
+	def update_candidates(guess, feedback)
+		@candidates.reject! { |perm| evaluate_feedback(guess, perm) != feedback }
+	end
 
-		initial_guesses(secret_code)
+	def update_guess
+		@current_guess = @candidates.shift
 	end
 
 	private
 
-	def initial_guesses(secret_code)
-		guess = @numbers_included.join
-		guess << @initial_guesses[@turns - 1] until guess.length == 4
-
-		update_numbers_included(guess, secret_code)
-
-		guess
-	end
-
-	def update_numbers_included(guess, secret_code)
-		feedback = evaluate_feedback(guess, secret_code)
-		matches = (feedback[:exact_matches] + feedback[:near_matches]) - @numbers_included.length
-		matches.times { @numbers_included.push(@initial_guesses[@turns - 1]) }
-	end
-
-	def final_guesses(secret_code)
-		if @first_final_guess == true
-			initialize_permutations(secret_code)
-
-			@first_final_guess = false
-		end
-
-		guess = @permutations.shift
-
-		update_permutations(guess, secret_code)
-
-		guess
-	end
-
-	def initialize_permutations(secret_code)
-		@numbers_included.permutation { |perm| @permutations.push(perm.join) }
-		@permutations.uniq!
-		@permutations.shuffle!
-	end
-
-	def update_permutations(guess, secret_code)
-		feedback = evaluate_feedback(guess, secret_code)
-		@permutations.reject! { |perm| evaluate_feedback(guess, perm) != feedback }
+	def generate_all_candidates
+		@candidates = []
+    (1111..6666).each do |code|
+      code_str = code.to_s
+      @candidates << code_str if code_str.chars.all? { |digit| digit.between?("1", "6") }
+    end
 	end
 end
 
