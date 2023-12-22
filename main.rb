@@ -30,49 +30,6 @@ module BreakerAndMaker
 	end
 end
 
-module AI
-
-  private
-
-  def get_AI_guess(turns)
-		@initial_guesses ||= ["1", "2", "3", "4", "5", "6"].shuffle
-		@numbers_included ||= []
-    return final_guesses if @numbers_included.length == 4
-
-    initial_guesses(turns)
-  end
-
-  def initial_guesses(turns)
-		@first_final_guess ||= true
-    guess = @numbers_included.join
-    guess << @initial_guesses[turns - 1] until guess.length == 4
-
-    feedback = evaluate_feedback(guess, @secret_code)
-    matches = (feedback[:exact_matches] + feedback[:near_matches]) - @numbers_included.length
-    matches.times { @numbers_included.push(@initial_guesses[turns - 1]) }
-
-    guess
-  end
-
-  def final_guesses
-		@permutations ||= []
-		if @first_final_guess == true
-			@numbers_included.permutation {|perm| @permutations.push(perm.join) }
-			@permutations.uniq!
-			@permutations.shuffle!
-
-			@first_final_guess = false
-		end
-
-		guess = @permutations.shift
-		feedback = evaluate_feedback(guess, @secret_code)
-		@permutations.reject! {|perm| evaluate_feedback(guess, perm) != feedback }
-
-		guess
-  end
-end
-
-
 class Mastermind
 	def game
 		choose_game_type
@@ -136,10 +93,11 @@ class CodeBreaker
 end
 
 class CodeMaker
-	include BreakerAndMaker, AI
+	include BreakerAndMaker
 
 	def initialize
 		@secret_code = choose_secret_code
+		@ai = AI.new
 		@turns = 1
 	end
 
@@ -147,7 +105,7 @@ class CodeMaker
 		while @turns <= 12
 			sleep(1)
 			puts "\nTurn ##{@turns}\n"
-			guess = get_AI_guess(@turns)
+			guess = @ai.get_AI_guess(@secret_code)
 			sleep(1)
 			puts guess
 			feedback = evaluate_feedback(guess, @secret_code)
@@ -173,6 +131,68 @@ class CodeMaker
 			code = gets.chomp
 		end
 		code
+	end
+end
+
+class AI
+	include BreakerAndMaker
+
+	def initialize
+		@turns = 0
+		@initial_guesses = ["1", "2", "3", "4", "5", "6"].shuffle
+		@numbers_included = []
+		@first_final_guess = true
+		@permutations = []
+	end
+
+	def get_AI_guess(secret_code)
+		@turns += 1
+
+		return final_guesses(secret_code) if @numbers_included.length == 4
+
+		initial_guesses(secret_code)
+	end
+
+	private
+
+	def initial_guesses(secret_code)
+		guess = @numbers_included.join
+		guess << @initial_guesses[@turns - 1] until guess.length == 4
+
+		update_numbers_included(guess, secret_code)
+
+		guess
+	end
+
+	def update_numbers_included(guess, secret_code)
+		feedback = evaluate_feedback(guess, secret_code)
+		matches = (feedback[:exact_matches] + feedback[:near_matches]) - @numbers_included.length
+		matches.times { @numbers_included.push(@initial_guesses[@turns - 1]) }
+	end
+
+	def final_guesses(secret_code)
+		if @first_final_guess == true
+			initialize_permutations(secret_code)
+
+			@first_final_guess = false
+		end
+
+		guess = @permutations.shift
+
+		update_permutations(guess, secret_code)
+
+		guess
+	end
+
+	def initialize_permutations(secret_code)
+		@numbers_included.permutation { |perm| @permutations.push(perm.join) }
+		@permutations.uniq!
+		@permutations.shuffle!
+	end
+
+	def update_permutations(guess, secret_code)
+		feedback = evaluate_feedback(guess, secret_code)
+		@permutations.reject! { |perm| evaluate_feedback(guess, perm) != feedback }
 	end
 end
 
