@@ -179,6 +179,7 @@ class AI
 			code_str = code.to_s
 			@candidates << code_str if code_str.chars.all? { |digit| digit.between?("1", "6") }
 		end
+		@candidates.shuffle!
 	end
 end
 
